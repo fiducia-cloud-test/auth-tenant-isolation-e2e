@@ -1,0 +1,57 @@
+name: customer Shared Auth assurance canary
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/customer-shared-auth-assurance.yml'
+      - 'scripts/customer_shared_auth_assurance.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: customer-shared-auth-assurance-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out canary without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out exact Fiducia interfaces candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: fiducia-cloud/fiducia-interfaces
+          ref: 8aec7206ef98ec05484b4867c35f423b3e17c5d0
+          path: source
+          persist-credentials: false
+
+      - name: Verify immutable source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C source rev-parse HEAD)" = "8aec7206ef98ec05484b4867c35f423b3e17c5d0"
+
+      - name: Verify strict customer assurance contract
+        run: python3 scripts/customer_shared_auth_assurance.py source/adapters/shared-auth-rust/src/lib.rs
+
+      - name: Install minimum supported Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.95.0 --profile minimal --component rustfmt,clippy
+
+      - name: Format, lint, and test the exact adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=source/adapters/shared-auth-rust/Cargo.toml
+          cargo +1.95.0 fmt --manifest-path "$manifest" -- --check
+          cargo +1.95.0 clippy --manifest-path "$manifest" --all-targets -- -D warnings
+          cargo +1.95.0 test --manifest-path "$manifest"
