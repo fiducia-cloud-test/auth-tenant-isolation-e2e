@@ -117,6 +117,9 @@ async fn malformed_tenant_credentials_fail_closed() {
         }
     });
 
-    let error = provider.verify(&request("tenant-without-user/")).await.unwrap_err();
+    let error = provider
+        .verify(&request("tenant-without-user/"))
+        .await
+        .unwrap_err();
     assert_eq!(error.code, "invalid_auth");
 }
