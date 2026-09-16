@@ -1,8 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 
 use ores_middleware::{
-    AuthDecision, AuthVerifier, IntegrationError, RequestMetadata, auth_provider_fn,
-    dyn_auth_provider,
+    AuthDecision, IntegrationError, RequestMetadata, StaticAuthVerifier, auth_provider_fn,
 };
 
 fn request(token: &str) -> RequestMetadata {
@@ -44,7 +43,7 @@ impl TenantAwareSdk {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn concurrent_requests_keep_user_and_tenant_identity_isolated() {
     let sdk = TenantAwareSdk;
-    let provider = dyn_auth_provider(auth_provider_fn(move |request: RequestMetadata| {
+    let provider = Arc::new(auth_provider_fn(move |request: RequestMetadata| {
         let sdk = sdk.clone();
         async move {
             let token = request
@@ -69,12 +68,12 @@ async fn concurrent_requests_keep_user_and_tenant_identity_isolated() {
 
     let mut tasks = Vec::new();
     for index in 0..256_u32 {
-        let provider = provider.clone();
+        let provider = Arc::clone(&provider);
         let tenant = format!("tenant-{}", index % 8);
         let user = format!("user-{index}");
         let token = format!("{tenant}/{user}");
         tasks.push(tokio::spawn(async move {
-            let decision = provider.verify(&request(&token)).await.unwrap();
+            let decision = provider.verify_owned(request(&token)).await.unwrap();
             (tenant, user, decision)
         }));
     }
@@ -118,8 +117,18 @@ async fn malformed_tenant_credentials_fail_closed() {
     });
 
     let error = provider
-        .verify(&request("tenant-without-user/"))
+        .verify_owned(request("tenant-without-user/"))
         .await
         .unwrap_err();
     assert_eq!(error.code, "invalid_auth");
+}
+
+#[test]
+fn provider_type_is_concrete_until_the_consumer_chooses_otherwise() {
+    fn assert_static_provider<P: StaticAuthVerifier>(_provider: &P) {}
+
+    let provider = auth_provider_fn(|_request: RequestMetadata| async {
+        Ok(AuthDecision::default())
+    });
+    assert_static_provider(&provider);
 }
