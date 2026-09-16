@@ -24,16 +24,7 @@ jobs:
         with:
           toolchain: 1.95.0
           components: rustfmt
-      - name: Format certification sources and capture patch
-        run: |
-          cargo fmt --manifest-path certification/ores-middleware-auth-provider-injection/Cargo.toml
-          git diff -- certification/ores-middleware-auth-provider-injection > rustfmt.patch
-      - name: Retain rustfmt patch
-        if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: ores-middleware-rustfmt-patch
-          path: rustfmt.patch
-          if-no-files-found: error
+      - name: Format certification sources
+        run: cargo fmt --check --manifest-path certification/ores-middleware-auth-provider-injection/Cargo.toml
       - name: Run provider-injection certification
         run: cargo test --manifest-path certification/ores-middleware-auth-provider-injection/Cargo.toml --all-targets
