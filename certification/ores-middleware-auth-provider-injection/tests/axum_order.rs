@@ -12,8 +12,10 @@ use axum::{
     response::Response,
     routing::get,
 };
-use ores_middleware::{AuthDecision, IntegrationError, RequestMetadata, StaticAuthVerifier, auth_provider_fn};
 use ores_middleware::frameworks::axum_composable::{AuthLayerState, authenticate};
+use ores_middleware::{
+    AuthDecision, IntegrationError, RequestMetadata, StaticAuthVerifier, auth_provider_fn,
+};
 use tower::{ServiceBuilder, ServiceExt};
 
 #[derive(Clone, Default)]
@@ -62,7 +64,10 @@ async fn start_trace(mut request: Request, next: Next) -> Response {
 }
 
 async fn observe_auth_position(request: Request, next: Next) -> Response {
-    let trace = request.extensions().get::<Trace>().expect("trace extension");
+    let trace = request
+        .extensions()
+        .get::<Trace>()
+        .expect("trace extension");
     if request.extensions().contains::<AuthDecision>() {
         trace.push("observer_after_auth");
     } else {
@@ -89,7 +94,10 @@ async fn handler(request: Request) -> String {
         .extensions()
         .get::<AuthDecision>()
         .expect("auth decision");
-    let trace = request.extensions().get::<Trace>().expect("trace extension");
+    let trace = request
+        .extensions()
+        .get::<Trace>()
+        .expect("trace extension");
     format!(
         "{}|{}|{}",
         auth.user_id.as_deref().unwrap_or_default(),
@@ -121,7 +129,9 @@ fn app() -> Router {
             .layer(middleware::from_fn(require_auth)),
     );
 
-    Router::new().merge(auth_before_observer).merge(observer_before_auth)
+    Router::new()
+        .merge(auth_before_observer)
+        .merge(observer_before_auth)
 }
 
 async fn call(path: &str, token: &str) -> (StatusCode, String) {
