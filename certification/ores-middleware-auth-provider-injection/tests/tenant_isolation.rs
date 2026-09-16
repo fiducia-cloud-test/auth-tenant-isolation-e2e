@@ -127,8 +127,7 @@ async fn malformed_tenant_credentials_fail_closed() {
 fn provider_type_is_concrete_until_the_consumer_chooses_otherwise() {
     fn assert_static_provider<P: StaticAuthVerifier>(_provider: &P) {}
 
-    let provider = auth_provider_fn(|_request: RequestMetadata| async {
-        Ok(AuthDecision::default())
-    });
+    let provider =
+        auth_provider_fn(|_request: RequestMetadata| async { Ok(AuthDecision::default()) });
     assert_static_provider(&provider);
 }
