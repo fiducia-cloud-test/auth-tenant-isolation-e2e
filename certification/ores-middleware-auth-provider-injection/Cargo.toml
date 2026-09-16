@@ -1,0 +1,11 @@
+[package]
+name = "fiducia-ores-middleware-auth-provider-certification"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+axum = "0.8"
+ores-middleware = { git = "https://github.com/ORESoftware/ores-middleware", rev = "be782e0312a2ddc70dddd2a791b8dfdac527c82b", default-features = false, features = ["axum"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower = { version = "0.5", features = ["util"] }
