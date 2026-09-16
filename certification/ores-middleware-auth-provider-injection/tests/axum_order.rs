@@ -68,7 +68,7 @@ async fn observe_auth_position(request: Request, next: Next) -> Response {
         .extensions()
         .get::<Trace>()
         .expect("trace extension");
-    if request.extensions().contains::<AuthDecision>() {
+    if request.extensions().get::<AuthDecision>().is_some() {
         trace.push("observer_after_auth");
     } else {
         trace.push("observer_before_auth");
